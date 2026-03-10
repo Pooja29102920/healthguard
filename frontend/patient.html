@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#0f766e"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>HealthGuard – Patient</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="stylesheet" href="app.css"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;padding:0;height:100%;background:#f0fdfa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;overflow:hidden}
+    #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+    #topbar{background:#0f766e;color:#fff;padding:0 16px;height:58px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:0 2px 12px rgba(0,0,0,.18);z-index:30}
+    #menuBtn{background:none;border:none;cursor:pointer;color:#fff;padding:6px;border-radius:8px;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
+    #menuBtn:active{background:rgba(255,255,255,.15)}
+    .topbar-logo{display:flex;align-items:center;gap:7px;flex:1}
+    .topbar-title{font-family:Georgia,serif;font-size:1.15rem;font-weight:700;color:#fff}
+    .topbar-right{display:flex;align-items:center;gap:6px}
+    .role-chip{background:rgba(255,255,255,.2);color:#fff;border-radius:99px;font-size:.65rem;font-weight:700;padding:3px 9px}
+
+    #permBanner{background:linear-gradient(90deg,#0891b2,#0f766e);color:#fff;padding:9px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.78rem;flex-shrink:0}
+    #permBanner.gone{display:none!important}
+
+    #drawerOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;backdrop-filter:blur(2px)}
+    #drawerOverlay.on{display:block}
+    #drawer{position:fixed;top:0;left:0;bottom:0;width:min(280px,85vw);background:#fff;z-index:101;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:4px 0 32px rgba(0,0,0,.18)}
+    #drawer.open{transform:translateX(0)}
+    .drawer-head{background:linear-gradient(135deg,#0f766e,#0891b2);padding:28px 20px 20px;flex-shrink:0}
+    .drawer-avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:10px}
+    .drawer-name{font-weight:700;color:#fff;font-size:.95rem;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .drawer-email{font-size:.72rem;color:rgba(255,255,255,.75);margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .drawer-role{display:inline-block;background:rgba(255,255,255,.2);color:#fff;font-size:.62rem;font-weight:700;border-radius:99px;padding:2px 8px;margin-top:6px}
+    .drawer-nav{flex:1;overflow-y:auto;padding:10px 8px}
+    .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;color:#64748b;font-size:.88rem;font-weight:500;transition:all .15s;margin-bottom:2px;-webkit-tap-highlight-color:transparent}
+    .nav-item:active{transform:scale(.97)}
+    .ni-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;background:#f1f5f9;flex-shrink:0}
+    .nav-item.active{color:#0f766e;background:#f0fdfa}
+    .nav-item.active .ni-icon{background:#ccfbf1}
+    .nav-item:not(.active):hover{background:#f8fafc}
+    .drawer-foot{padding:10px 8px 20px;border-top:1px solid #f1f5f9;flex-shrink:0}
+    .nav-logout{color:#ef4444}.nav-logout .ni-icon{background:#fff1f2}
+
+    #pageContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;padding-bottom:28px}
+
+    .card{background:#fff;border-radius:14px;box-shadow:0 1px 8px rgba(0,0,0,.07);padding:16px;margin-bottom:14px}
+    .card-title{margin:0 0 12px;font-size:.95rem;font-weight:700;color:#1e293b}
+    .sec-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #f0fdfa}
+    .sec-header-icon{width:42px;height:42px;border-radius:12px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+    .sec-header-title{font-size:1.1rem;font-weight:700;color:#134e4a;margin:0}
+    .sec-header-sub{font-size:.75rem;color:#94a3b8;margin:2px 0 0}
+
+    .inp{display:block;width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:11px 13px;font-size:16px;outline:none;font-family:inherit;background:#fafafa;transition:border-color .2s}
+    .inp:focus{border-color:#0f766e;background:#fff}
+    select.inp{background:#fff} textarea.inp{resize:vertical;min-height:80px}
+    .inp-group{display:flex;flex-direction:column;gap:10px}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:#0f766e;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s,transform .1s;-webkit-tap-highlight-color:transparent;width:100%}
+    .btn:active{transform:scale(.97)}
+    .btn-gray{background:#64748b}.btn-red{background:#ef4444}.btn-purple{background:#7c3aed}.btn-blue{background:#1d4ed8}
+
+    .sec{display:none!important}.sec.on{display:block!important}
+    .badge{display:inline-block;border-radius:999px;font-size:.68rem;font-weight:700;padding:2px 8px}
+
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:99px;font-size:.83rem;font-weight:500;opacity:0;pointer-events:none;transition:opacity .3s;z-index:500;max-width:calc(100vw - 32px);text-align:center}
+    #toast.show{opacity:1}
+
+    /* SOS */
+    .sos-wrap{position:relative;width:150px;height:150px;display:flex;align-items:center;justify-content:center}
+    .sos-ring{position:absolute;inset:0;border-radius:50%;background:rgba(239,68,68,.18);animation:sosPulse 2s infinite}
+    @keyframes sosPulse{0%{transform:scale(1);opacity:.8}70%{transform:scale(1.5);opacity:0}100%{transform:scale(1.5);opacity:0}}
+    .sos-btn{width:126px;height:126px;border-radius:50%;background:linear-gradient(135deg,#f43f5e,#dc2626);color:#fff;font-size:1.1rem;font-weight:900;border:none;cursor:pointer;font-family:inherit;position:relative;z-index:1;transition:transform .15s;box-shadow:0 6px 24px rgba(220,38,38,.4);-webkit-tap-highlight-color:transparent}
+    .sos-btn:active{transform:scale(.93)}
+    .sos-progress{height:6px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:16px}
+    .sos-bar{height:100%;background:linear-gradient(90deg,#f43f5e,#dc2626);width:0;transition:none;border-radius:3px}
+
+    /* Water */
+    .w-ring{width:100px;height:100px;border-radius:50%;border:5px solid #bae6fd;display:flex;align-items:center;justify-content:center;font-size:2.2rem;transition:border-color .3s}
+    .w-ring.on{border-color:#0ea5e9;animation:wPulse 2s infinite}
+    @keyframes wPulse{0%,100%{box-shadow:0 0 0 0 rgba(14,165,233,.3)}50%{box-shadow:0 0 0 14px rgba(14,165,233,0)}}
+
+    /* Medicines */
+    .med-cg{border-left:3px solid #1d4ed8}
+    .med-pt{border-left:3px solid #0f766e}
+
+    /* Stats */
+    .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+    .stat-card{background:#fff;border-radius:14px;box-shadow:0 1px 8px rgba(0,0,0,.07);padding:14px 10px;text-align:center}
+    .stat-icon{font-size:1.7rem}
+    .stat-val{font-size:1.6rem;font-weight:700;color:#0f766e;margin:4px 0 0;line-height:1}
+    .stat-label{font-size:.68rem;color:#94a3b8;margin:3px 0 0}
+
+    /* Chat */
+    .chat-bubble{max-width:82%;padding:10px 14px;border-radius:18px;font-size:.85rem;line-height:1.45;word-break:break-word}
+    .chat-out{background:#0f766e;color:#fff;border-bottom-right-radius:5px;align-self:flex-end;margin-left:auto}
+    .chat-in{background:#f1f5f9;color:#1e293b;border-bottom-left-radius:5px}
+    .chat-meta{font-size:.65rem;opacity:.7;margin-top:3px}
+    .chat-list{display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto;padding:4px 0;margin-bottom:12px}
+    .chat-day{text-align:center;font-size:.65rem;color:#94a3b8;margin:8px 0;font-weight:600}
+
+    /* Drop zone */
+    .drop-z{border:2px dashed #e2e8f0;border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+    .drop-z:hover,.drop-z.over{border-color:#0f766e;background:#f0fdfa}
+
+    /* Pair code */
+    .pair-code{font-family:monospace;font-size:2.2rem;font-weight:700;letter-spacing:.25em;color:#0f766e;background:#f0fdfa;border:2px solid #99f6e4;border-radius:14px;padding:18px 20px;text-align:center;cursor:pointer;user-select:all}
+    .pair-code:active{background:#ccfbf1}
+
+    /* Conn dot */
+    #connStatus{font-size:.65rem;margin-right:2px}
+
+    @media(min-width:640px){.stat-grid{grid-template-columns:repeat(4,1fr)}}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="drawerOverlay" onclick="closeDrawer()"></div>
+  <div id="drawer">
+    <div class="drawer-head">
+      <div class="drawer-avatar">🧑‍⚕️</div>
+      <p id="drName" class="drawer-name">—</p>
+      <p id="drEmail" class="drawer-email">—</p>
+      <span class="drawer-role">Patient</span>
+    </div>
+    <div class="drawer-nav">
+      <div class="nav-item active" data-sec="overview"     onclick="nav(this)"><div class="ni-icon">📊</div><span>Overview</span></div>
+      <div class="nav-item"        data-sec="water"        onclick="nav(this)"><div class="ni-icon">💧</div><span>Water Reminder</span></div>
+      <div class="nav-item"        data-sec="medicine"     onclick="nav(this)"><div class="ni-icon">💊</div><span>Medicines</span></div>
+      <div class="nav-item"        data-sec="appointments" onclick="nav(this)"><div class="ni-icon">📅</div><span>Appointments</span></div>
+      <div class="nav-item"        data-sec="sos"          onclick="nav(this)"><div class="ni-icon">🆘</div><span>SOS Emergency</span></div>
+      <div class="nav-item"        data-sec="reports"      onclick="nav(this)"><div class="ni-icon">📋</div><span>Health Reports</span></div>
+      <div class="nav-item"        data-sec="chat"         onclick="nav(this)"><div class="ni-icon">💬</div><span>Chat Caregiver</span></div>
+      <div class="nav-item"        data-sec="link"         onclick="nav(this)"><div class="ni-icon">🔗</div><span>Link Caregiver</span></div>
+      <div class="nav-item"        data-sec="history"      onclick="nav(this)"><div class="ni-icon">🕐</div><span>Activity Log</span></div>
+    </div>
+    <div class="drawer-foot">
+      <div class="nav-item nav-logout" onclick="doLogout()"><div class="ni-icon">🚪</div><span>Sign Out</span></div>
+    </div>
+  </div>
+
+  <div id="topbar">
+    <button id="menuBtn" onclick="openDrawer()">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="topbar-logo">
+      <svg width="22" height="22" fill="none" stroke="#fff" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      <span class="topbar-title">HealthGuard</span>
+    </div>
+    <div class="topbar-right">
+      <span id="connStatus">⚪</span>
+      <span class="role-chip">Patient</span>
+      <div id="bellSlot"></div>
+    </div>
+  </div>
+
+  <div id="permBanner">
+    <span>🔔 Enable notifications &amp; sound alerts</span>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button onclick="enableNotifs()" style="background:#fff;color:#0f766e;border:none;border-radius:8px;padding:5px 12px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">Enable</button>
+      <button onclick="document.getElementById('permBanner').classList.add('gone')" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:5px 10px;font-size:.78rem;cursor:pointer">✕</button>
+    </div>
+  </div>
+
+  <div id="pageContent">
+
+    <!-- OVERVIEW -->
+    <div id="sec-overview" class="sec on">
+      <div id="cgBanner" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:14px;margin-bottom:14px">
+        <p style="font-size:.85rem;color:#1d4ed8;margin:0">👩‍⚕️ Linked to: <strong id="cgName"></strong></p>
+      </div>
+      <div id="noCgBanner" style="background:#fef9c3;border:1px solid #fde047;border-radius:14px;padding:14px;margin-bottom:14px">
+        <p style="font-size:.85rem;color:#854d0e;margin:0 0 8px">⚠️ No caregiver linked yet</p>
+        <button class="btn" style="width:auto;padding:7px 14px;font-size:.78rem" onclick="navTo('link')">Link a Caregiver →</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-icon">💊</div><div id="stMeds" class="stat-val">0</div><div class="stat-label">Medicines</div></div>
+        <div class="stat-card"><div class="stat-icon">📅</div><div id="stAppts" class="stat-val">0</div><div class="stat-label">Appointments</div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div id="stRep" class="stat-val">0</div><div class="stat-label">Reports</div></div>
+        <div class="stat-card"><div class="stat-icon">💧</div><div id="stWater" class="stat-val">—</div><div class="stat-label">Water</div></div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div><p style="margin:0;font-weight:700;font-size:.9rem;color:#1e293b">🆘 SOS Emergency</p><p style="margin:2px 0 0;font-size:.75rem;color:#94a3b8">Tap to alert caregiver instantly</p></div>
+        <button onclick="navTo('sos')" style="width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,#f43f5e,#dc2626);color:#fff;border:none;font-size:.7rem;font-weight:900;cursor:pointer;font-family:inherit;flex-shrink:0;box-shadow:0 4px 14px rgba(220,38,38,.35)">🆘<br>SOS</button>
+      </div>
+      <div class="card">
+        <p class="card-title">📅 Upcoming Appointments</p>
+        <div id="ovAppts" style="font-size:.85rem;color:#94a3b8">None yet.</div>
+      </div>
+      <div class="card">
+        <p class="card-title">💊 Today's Medicines</p>
+        <div id="ovMeds" style="font-size:.85rem;color:#94a3b8">None scheduled.</div>
+      </div>
+    </div>
+
+    <!-- WATER -->
+    <div id="sec-water" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">💧</div><div><p class="sec-header-title">Water Reminder</p><p class="sec-header-sub">Stay hydrated — caregiver notified too</p></div></div>
+      <div class="card" style="text-align:center">
+        <div style="display:flex;justify-content:center;margin-bottom:20px"><div class="w-ring" id="wRing">💧</div></div>
+        <label style="font-size:.8rem;font-weight:600;color:#64748b;display:block;margin-bottom:8px;text-align:left">Remind every:</label>
+        <select id="wSelect" class="inp" style="margin-bottom:14px">
+          <option value="15">15 minutes</option>
+          <option value="30" selected>30 minutes</option>
+          <option value="45">45 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="90">1.5 hours</option>
+          <option value="120">2 hours</option>
+        </select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button id="wBtn" class="btn" onclick="toggleWater()">▶ Start</button>
+          <button class="btn btn-blue" onclick="logWater()">💧 Log a Glass</button>
+        </div>
+        <p id="wStatus" style="font-size:.8rem;color:#0f766e;margin:10px 0 0;font-weight:600"></p>
+      </div>
+    </div>
+
+    <!-- MEDICINE -->
+    <div id="sec-medicine" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">💊</div><div><p class="sec-header-title">Medicines</p><p class="sec-header-sub">Your schedule + caregiver-assigned</p></div></div>
+      <div class="card">
+        <p class="card-title">Add Medicine</p>
+        <div class="inp-group">
+          <input id="mName"  class="inp" placeholder="Medicine name *"/>
+          <input id="mDose"  class="inp" placeholder="Dosage (e.g. 500 mg) *"/>
+          <input id="mTime"  class="inp" type="time"/>
+          <input id="mNotes" class="inp" placeholder="Notes (optional)"/>
+          <button class="btn" onclick="addMedicine()">+ Add Medicine</button>
+        </div>
+      </div>
+      <div class="card">
+        <p style="margin:0 0 6px;font-weight:700;font-size:.9rem;color:#1e293b">Your Medicines</p>
+        <p style="margin:0 0 10px;font-size:.72rem;color:#94a3b8"><span style="display:inline-block;width:10px;height:10px;background:#1d4ed8;border-radius:3px;margin-right:4px;vertical-align:middle"></span>By caregiver &nbsp;<span style="display:inline-block;width:10px;height:10px;background:#0f766e;border-radius:3px;margin-right:4px;vertical-align:middle"></span>By you</p>
+        <div id="medList"><p style="color:#94a3b8;font-size:.85rem">No medicines yet.</p></div>
+      </div>
+    </div>
+
+    <!-- APPOINTMENTS -->
+    <div id="sec-appointments" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">📅</div><div><p class="sec-header-title">Appointments</p><p class="sec-header-sub">Caregiver notified automatically</p></div></div>
+      <div class="card">
+        <p class="card-title">New Appointment</p>
+        <div class="inp-group">
+          <input id="aDoc"   class="inp" placeholder="Doctor / Clinic *"/>
+          <input id="aDate"  class="inp" type="date"/>
+          <input id="aTime"  class="inp" type="time"/>
+          <input id="aNotes" class="inp" placeholder="Notes (optional)"/>
+          <button class="btn" onclick="addAppointment()">+ Add Appointment</button>
+        </div>
+      </div>
+      <div class="card">
+        <p class="card-title">All Appointments</p>
+        <div id="apptList"><p style="color:#94a3b8;font-size:.85rem">No appointments yet.</p></div>
+      </div>
+    </div>
+
+    <!-- SOS -->
+    <div id="sec-sos" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">🆘</div><div><p class="sec-header-title">SOS Emergency</p><p class="sec-header-sub">Loud alarm + GPS sent to caregiver</p></div></div>
+      <div class="card" style="text-align:center;padding:28px 16px">
+        <p style="margin:0 0 8px;font-size:.85rem;color:#64748b">Hold the button for 3 seconds to send your GPS location and trigger a loud alarm.</p>
+        <div style="display:flex;justify-content:center;margin:28px 0">
+          <div class="sos-wrap">
+            <div class="sos-ring"></div>
+            <button class="sos-btn"
+              onmousedown="startSosHold()" ontouchstart="startSosHold()"
+              onmouseup="cancelSosHold()"  ontouchend="cancelSosHold()"
+              onmouseleave="cancelSosHold()">SOS</button>
+          </div>
+        </div>
+        <div class="sos-progress" id="sosProgressWrap" style="display:none">
+          <div class="sos-bar" id="sosBar"></div>
+        </div>
+        <p id="sosHoldTip" style="font-size:.75rem;color:#94a3b8;margin-top:8px">Hold for 3 seconds to send</p>
+        <div id="sosBox" style="display:none;text-align:left;background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:14px;margin-top:14px">
+          <p style="margin:0 0 8px;font-weight:700;color:#e11d48;font-size:.875rem">🚨 Alert Sent!</p>
+          <div id="sosInfo" style="font-size:.78rem;color:#64748b;line-height:1.8"></div>
+        </div>
+        <p id="sosLast" style="font-size:.72rem;color:#94a3b8;margin-top:10px"></p>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="sec-reports" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">📋</div><div><p class="sec-header-title">Health Reports</p><p class="sec-header-sub">Upload and open your documents</p></div></div>
+      <div class="card">
+        <p class="card-title">Upload Report</p>
+        <div id="dropZ" class="drop-z" onclick="document.getElementById('rFile').click()">
+          <div style="font-size:2.2rem;margin-bottom:4px">📁</div>
+          <p style="margin:0;font-size:.8rem;color:#94a3b8">Tap to select file (PDF, image, doc)</p>
+          <input type="file" id="rFile" accept=".pdf,image/*,.doc,.docx" style="display:none" onchange="fileChosen(this)"/>
+        </div>
+        <p id="rPreview" style="font-size:.75rem;color:#0f766e;margin:8px 0"></p>
+        <input id="rLabel" class="inp" placeholder="Report label *" style="margin-bottom:10px"/>
+        <button id="rUpBtn" class="btn" onclick="uploadReport()">📤 Upload Report</button>
+      </div>
+      <div class="card">
+        <p class="card-title">Uploaded Reports</p>
+        <div id="repList"><p style="color:#94a3b8;font-size:.85rem">No reports yet.</p></div>
+      </div>
+    </div>
+
+    <!-- CHAT -->
+    <div id="sec-chat" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">💬</div><div><p class="sec-header-title">Chat with Caregiver</p><p class="sec-header-sub" id="chatSub">Real-time messages + sound alerts</p></div></div>
+      <div id="noCgChat" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:12px;padding:14px;margin-bottom:14px;font-size:.82rem;color:#92400e">⚠️ Link a caregiver first to chat.</div>
+      <div id="cgChatArea">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="chatList" class="chat-list" style="padding:16px;min-height:200px">
+            <div style="text-align:center;color:#94a3b8;font-size:.82rem;padding:30px 0">No messages yet. Say hello! 👋</div>
+          </div>
+          <div style="padding:0 12px 12px;display:flex;gap:8px;align-items:flex-end;border-top:1px solid #f1f5f9;padding-top:12px">
+            <textarea id="chatInp" class="inp" placeholder="Type a message…" rows="2" style="flex:1;min-height:44px;max-height:100px;margin:0;resize:none;font-size:15px" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
+            <button onclick="sendChat()" style="width:44px;height:44px;border-radius:10px;background:#0f766e;color:#fff;border:none;cursor:pointer;font-size:1.2rem;flex-shrink:0">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LINK CAREGIVER -->
+    <div id="sec-link" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">🔗</div><div><p class="sec-header-title">Link Caregiver</p><p class="sec-header-sub">Share your pairing code</p></div></div>
+      <div class="card">
+        <p class="card-title">Your Pairing Code</p>
+        <p style="font-size:.8rem;color:#64748b;margin:0 0 14px">Share this code with your caregiver. They enter it to link instantly — no app needed on their end.</p>
+        <div id="pairCode" class="pair-code" onclick="copyCode()" title="Tap to copy">— — — —</div>
+        <p style="font-size:.72rem;color:#94a3b8;text-align:center;margin:8px 0 14px">⏎ Tap to copy • Expires end of day</p>
+        <button class="btn" onclick="genCode()">🔄 Generate New Code</button>
+      </div>
+      <div id="cgLinkedCard" class="card" style="display:none">
+        <p class="card-title">✅ Linked Caregiver</p>
+        <p id="cgLinkedName" style="font-size:.9rem;color:#0f766e;font-weight:700;margin:0"></p>
+        <p id="cgLinkedEmail" style="font-size:.78rem;color:#64748b;margin:4px 0 0"></p>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="sec-history" class="sec">
+      <div class="sec-header"><div class="sec-header-icon">🕐</div><div><p class="sec-header-title">Activity Log</p><p class="sec-header-sub">Everything that happened</p></div></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-weight:700;font-size:.9rem;color:#1e293b">Recent Activity</span>
+          <button onclick="clearHistory()" style="background:none;border:none;font-size:.75rem;color:#ef4444;cursor:pointer;font-family:inherit">Clear all</button>
+        </div>
+        <div id="histList"><p style="color:#94a3b8;font-size:.85rem">No activity yet.</p></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="js/storage.js"></script>
+<script src="js/notifications.js"></script>
+<script>
+const _user = API.currentUser();
+if (!_user || _user.role !== 'patient') { window.location.href = 'index.html'; }
+
+let _pid = null;
+let _cgId = null;
+let _cgUserId = null;
+let _medicines = [];
+let _appointments = [];
+let _chatMsgs = [];
+let _seenIds = new Set();
+let _sse = null;
+let _pollTimer = null;
+let _waterRunning = false;
+let _sosHoldTimer = null;
+let _sosBarAnim = null;
+let _chosenFile = null;
+
+document.getElementById('drName').textContent  = _user.name;
+document.getElementById('drEmail').textContent = _user.email;
+
+// INIT
+(async () => {
+  // Auto-hide perm banner
+  if (!window.Notification || Notification.permission === 'granted')
+    document.getElementById('permBanner').classList.add('gone');
+
+  Notif.injectBell(document.getElementById('bellSlot'), _user.id, '#0f766e');
+  Notif.setMarkAllReadFn(async () => { await API.markAllNotificationsRead(); loadNotifs(false); });
+
+  await loadPatientRecord();
+  loadNotifs(true);
+  startRealtime();
+})();
+
+// PATIENT RECORD
+async function loadPatientRecord() {
+  const r = await API.getMe();
+  if (!r.ok) return;
+  const me = r.data;
+  _pid = me.patient_id;
+
+  if (me.caregiver_id) {
+    _cgUserId = me.caregiver_id;
+    const cg = await API.getUser(me.caregiver_id);
+    if (cg.ok) {
+      _cgId = cg.data.id;
+      document.getElementById('cgName').textContent = cg.data.name;
+      document.getElementById('cgBanner').style.display = 'block';
+      document.getElementById('noCgBanner').style.display = 'none';
+      document.getElementById('cgLinkedCard').style.display = 'block';
+      document.getElementById('cgLinkedName').textContent = cg.data.name;
+      document.getElementById('cgLinkedEmail').textContent = cg.data.email;
+      document.getElementById('chatSub').textContent = 'Chat with ' + cg.data.name;
+      document.getElementById('noCgChat').style.display = 'none';
+    }
+  } else {
+    document.getElementById('noCgChat').style.display = 'block';
+    document.getElementById('cgChatArea').style.display = 'none';
+  }
+
+  if (_pid) {
+    await Promise.all([loadMeds(), loadAppts(), loadReports()]);
+    updateStats();
+  }
+
+  // Water setting
+  const w = await API.getWater();
+  if (w.ok && w.data.minutes) {
+    document.getElementById('wSelect').value = w.data.minutes;
+    startWaterReminder(w.data.minutes);
+  }
+
+  genCode();
+}
+
+// STATS
+function updateStats() {
+  document.getElementById('stMeds').textContent  = _medicines.length;
+  document.getElementById('stAppts').textContent = _appointments.filter(a => new Date(a.date+'T'+a.time) >= new Date()).length;
+}
+
+// WATER
+function toggleWater() {
+  if (!_waterRunning) {
+    const mins = parseInt(document.getElementById('wSelect').value);
+    startWaterReminder(mins);
+    API.setWater(mins);
+    if (_cgUserId) API.pushNotification(_cgUserId, 'water_started', '💧 ' + _user.name + ' water reminders active', 'Hydration every ' + mins + ' min');
+    toast('💧 Water reminder started!');
+  } else {
+    stopWaterReminder();
+    API.stopWater();
+    toast('Water reminder stopped.');
+  }
+}
+function startWaterReminder(mins) {
+  _waterRunning = true;
+  Notif.startWater(mins, _pid, _user.id, _cgUserId || null);
+  document.getElementById('wBtn').textContent = '⏹ Stop';
+  document.getElementById('wBtn').className = 'btn btn-gray';
+  document.getElementById('wRing').classList.add('on');
+  document.getElementById('wStatus').textContent = '✅ Active — every ' + mins + ' min';
+  document.getElementById('stWater').textContent = mins + 'm';
+}
+function stopWaterReminder() {
+  _waterRunning = false;
+  Notif.stopWater();
+  document.getElementById('wBtn').textContent = '▶ Start';
+  document.getElementById('wBtn').className = 'btn';
+  document.getElementById('wRing').classList.remove('on');
+  document.getElementById('wStatus').textContent = '';
+  document.getElementById('stWater').textContent = '—';
+}
+function logWater() {
+  Notif.showPopup('water', '💧 Glass logged!', 'Great job staying hydrated!', 3000);
+  toast('💧 Glass of water logged!');
+}
+
+// MEDICINES
+async function loadMeds() {
+  if (!_pid) return;
+  const r = await API.getMedicines(_pid);
+  if (r.ok) { _medicines = r.data; renderMeds(); renderOvMeds(); updateStats(); }
+}
+function renderMeds() {
+  const el = document.getElementById('medList');
+  if (!_medicines.length) { el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem">No medicines yet.</p>'; return; }
+  el.innerHTML = _medicines.map(m => `
+    <div style="display:flex;align-items:center;justify-content:space-between;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${m.by_role==='caregiver'?'#eff6ff':'#fefce8'}" class="${m.by_role==='caregiver'?'med-cg':'med-pt'}">
+      <div><p style="margin:0;font-weight:700;font-size:.875rem;color:#1e293b">💊 ${esc(m.name)}</p>
+      <p style="margin:2px 0 0;font-size:.75rem;color:#64748b">${esc(m.dosage)}${m.time?' · '+m.time:''}${m.notes?' · '+esc(m.notes):''}</p>
+      <span class="badge" style="margin-top:4px;background:${m.by_role==='caregiver'?'#dbeafe':'#ccfbf1'};color:${m.by_role==='caregiver'?'#1d4ed8':'#0f766e'}">${m.by_role==='caregiver'?'👩‍⚕️ Caregiver':'👤 You'}</span></div>
+      ${m.by_role!=='caregiver'?`<button onclick="delMed('${m.id}')" style="background:none;border:none;color:#ef4444;font-size:1.4rem;cursor:pointer;padding:0;line-height:1">×</button>`:'<span style="font-size:.75rem;color:#93c5fd">🔒</span>'}
+    </div>`).join('');
+}
+function renderOvMeds() {
+  const el = document.getElementById('ovMeds');
+  const today = _medicines.filter(m => m.time);
+  if (!today.length) { el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem">No medicines scheduled.</p>'; return; }
+  el.innerHTML = today.sort((a,b)=>a.time.localeCompare(b.time)).map(m =>
+    `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9;align-items:center">
+      <span style="font-size:1.1rem">💊</span>
+      <div><p style="margin:0;font-weight:600;font-size:.85rem;color:#1e293b">${esc(m.name)}</p>
+      <p style="margin:0;font-size:.75rem;color:#94a3b8">${esc(m.dosage)} at ${m.time}</p></div>
+    </div>`).join('');
+}
+async function addMedicine() {
+  const name = document.getElementById('mName').value.trim(), dose = document.getElementById('mDose').value.trim(),
+        time = document.getElementById('mTime').value, notes = document.getElementById('mNotes').value.trim();
+  if (!name) { toast('⚠️ Enter medicine name'); return; }
+  if (!dose) { toast('⚠️ Enter dosage'); return; }
+  if (!_pid) { toast('⚠️ No patient record'); return; }
+  const r = await API.addMedicine(_pid, { name, dosage: dose, time, notes, by: 'patient' });
+  if (r.ok) {
+    ['mName','mDose','mTime','mNotes'].forEach(id => document.getElementById(id).value = '');
+    if (_cgUserId) await API.pushNotification(_cgUserId, 'new_medicine', '💊 ' + _user.name + ' added a medicine', name + ' (' + dose + ')' + (time ? ' at ' + time : ''));
+    toast('💊 Medicine added!');
+    await loadMeds();
+    Notif.startMedCheck(() => _medicines, _pid, _user.id, _cgUserId || null, _user.name);
+  } else toast(r.data.error || 'Failed');
+}
+async function delMed(id) {
+  if (!confirm('Delete this medicine?')) return;
+  await API.deleteMedicine(_pid, id);
+  await loadMeds();
+}
+
+// APPOINTMENTS
+async function loadAppts() {
+  if (!_pid) return;
+  const r = await API.getAppointments(_pid);
+  if (r.ok) { _appointments = r.data; renderAppts(); renderOvAppts(); updateStats(); }
+}
+function renderAppts() {
+  const el = document.getElementById('apptList'), now = new Date();
+  if (!_appointments.length) { el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem">No appointments yet.</p>'; return; }
+  el.innerHTML = _appointments.sort((a,b) => new Date(a.date+'T'+a.time)-new Date(b.date+'T'+b.time)).map(a => {
+    const past = new Date(a.date+'T'+a.time) < now;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${past?'#f8fafc':'#f5f3ff'};opacity:${past?.7:1}">
+      <div><p style="margin:0;font-weight:700;font-size:.875rem;color:#1e293b">📅 ${esc(a.doctor)}</p>
+      <p style="margin:2px 0 0;font-size:.75rem;color:#64748b">${fmtDate2(a.date)} · ${a.time}${a.notes?' · '+esc(a.notes):''}</p>
+      <span class="badge" style="margin-top:4px;background:${past?'#f1f5f9':'#ede9fe'};color:${past?'#94a3b8':'#7c3aed'}">${past?'Past':'Upcoming'}</span></div>
+      <button onclick="delAppt('${a.id}')" style="background:none;border:none;color:#ef4444;font-size:1.4rem;cursor:pointer;padding:0;line-height:1;flex-shrink:0">×</button>
+    </div>`;
+  }).join('');
+}
+function renderOvAppts() {
+  const el = document.getElementById('ovAppts'), now = new Date();
+  const up = _appointments.filter(a => new Date(a.date+'T'+a.time) >= now).sort((a,b) => new Date(a.date+'T'+a.time)-new Date(b.date+'T'+b.time)).slice(0,3);
+  if (!up.length) { el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem">No upcoming appointments.</p>'; return; }
+  el.innerHTML = up.map(a => `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;align-items:flex-start">
+    <span>📅</span><div><p style="margin:0;font-weight:600;font-size:.85rem;color:#1e293b">${esc(a.doctor)}</p>
+    <p style="margin:0;font-size:.75rem;color:#94a3b8">${fmtDate2(a.date)} at ${a.time}</p></div>
+  </div>`).join('');
+}
+async function addAppointment() {
+  const doc = document.getElementById('aDoc').value.trim(), date = document.getElementById('aDate').value,
+        time = document.getElementById('aTime').value, notes = document.getElementById('aNotes').value.trim();
+  if (!doc) { toast('⚠️ Enter doctor/clinic'); return; }
+  if (!date) { toast('⚠️ Pick a date'); return; }
+  if (!time) { toast('⚠️ Set a time'); return; }
+  const r = await API.addAppointment(_pid, { doctor: doc, date, time, notes });
+  if (r.ok) {
+    ['aDoc','aDate','aTime','aNotes'].forEach(id => document.getElementById(id).value = '');
+    if (_cgUserId) await API.pushNotification(_cgUserId, 'new_appointment', '📅 New appointment — ' + _user.name, 'Dr. ' + doc + ' on ' + date + ' at ' + time);
+    toast('📅 Appointment added — caregiver notified!');
+    await loadAppts();
+  } else toast(r.data.error || 'Failed');
+}
+async function delAppt(id) {
+  if (!confirm('Delete?')) return;
+  await API.deleteAppointment(_pid, id);
+  await loadAppts();
+}
+
+// SOS
+function startSosHold() {
+  if (!_cgUserId) { toast('⚠️ No caregiver linked!'); return; }
+  const prog = document.getElementById('sosProgressWrap');
+  const bar  = document.getElementById('sosBar');
+  prog.style.display = 'block';
+  bar.style.width = '0';
+  bar.style.transition = 'none';
+  setTimeout(() => { bar.style.transition = 'width 3s linear'; bar.style.width = '100%'; }, 30);
+  _sosHoldTimer = setTimeout(() => triggerSOS(), 3000);
+}
+function cancelSosHold() {
+  clearTimeout(_sosHoldTimer);
+  _sosHoldTimer = null;
+  const prog = document.getElementById('sosProgressWrap');
+  const bar  = document.getElementById('sosBar');
+  bar.style.transition = 'none';
+  bar.style.width = '0';
+  prog.style.display = 'none';
+}
+async function triggerSOS() {
+  cancelSosHold();
+  toast('📍 Getting location…', 5000);
+  try {
+    const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }));
+    const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+    await API.sendSOS(_pid, lat, lng, accuracy);
+    if (_cgUserId) await API.pushNotification(_cgUserId, 'sos_alert', '🚨 SOS — ' + _user.name, _user.name + ' needs help! Lat ' + lat.toFixed(5) + ', Lng ' + lng.toFixed(5));
+    document.getElementById('sosBox').style.display = 'block';
+    document.getElementById('sosInfo').innerHTML = `<p style="margin:0">📍 <b>Lat:</b> ${lat.toFixed(6)}</p><p style="margin:0">📍 <b>Lng:</b> ${lng.toFixed(6)}</p><p style="margin:0">🎯 <b>Accuracy:</b> ±${Math.round(accuracy)}m</p><a href="https://maps.google.com/maps?q=${lat},${lng}" target="_blank" style="color:#0f766e;font-weight:600">📍 Open in Google Maps →</a>`;
+    Notif.showPopup('sos_alert', '🚨 SOS Sent', 'Caregiver alerted with your GPS location.', 0);
+    Notif.playSound('sos_alert');
+    toast('🚨 SOS alert sent!');
+    loadSosLast();
+  } catch (e) {
+    toast('⚠️ Location error: ' + (e.message || 'denied'));
+  }
+}
+async function loadSosLast() {
+  if (!_pid) return;
+  const r = await API.getLastSOS(_pid);
+  if (r.ok && r.data.ts) {
+    document.getElementById('sosLast').textContent = 'Last SOS: ' + fmtDate(r.data.ts) + ' · ' + parseFloat(r.data.lat).toFixed(4) + ', ' + parseFloat(r.data.lng).toFixed(4);
+  }
+}
+
+// REPORTS
+async function loadReports() {
+  if (!_pid) return;
+  const r = await API.getReports(_pid);
+  if (r.ok) renderReports(r.data);
+}
+function renderReports(reps) {
+  const el = document.getElementById('repList');
+  if (!reps.length) { el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem">No reports yet.</p>'; return; }
+  el.innerHTML = reps.map(r => `
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f0fdf4;border-radius:10px;padding:10px 12px;margin-bottom:8px;gap:8px">
+      <div style="flex:1;min-width:0"><p style="margin:0;font-weight:700;font-size:.875rem;color:#1e293b">📋 ${esc(r.label)}</p>
+      <p style="margin:2px 0 0;font-size:.72rem;color:#64748b">${esc(r.file_name)} · ${(r.size/1024).toFixed(1)} KB · ${fmtDate(r.uploaded_at)}</p></div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <a href="${API.getReportUrl(_pid, r.id)}" target="_blank" style="padding:5px 10px;background:#dcfce7;color:#166534;border-radius:8px;font-size:.75rem;font-weight:600;text-decoration:none;white-space:nowrap">📂 Open</a>
+        <button onclick="delReport('${r.id}')" style="background:none;border:none;color:#ef4444;font-size:1.3rem;cursor:pointer;padding:0;line-height:1">×</button>
+      </div>
+    </div>`).join('');
+}
+function fileChosen(inp) {
+  _chosenFile = inp.files[0];
+  if (!_chosenFile) return;
+  document.getElementById('rPreview').textContent = '📎 ' + _chosenFile.name;
+  if (!document.getElementById('rLabel').value)
+    document.getElementById('rLabel').value = _chosenFile.name.replace(/\.[^.]+$/, '');
+}
+async function uploadReport() {
+  const label = document.getElementById('rLabel').value.trim();
+  if (!_chosenFile) { toast('⚠️ Select a file'); return; }
+  if (!label)       { toast('⚠️ Enter a label'); return; }
+  if (!_pid)        { toast('⚠️ No patient record'); return; }
+  const btn = document.getElementById('rUpBtn');
+  btn.disabled = true; btn.textContent = 'Uploading…';
+  const r = await API.addReport(_pid, _chosenFile, label);
+  btn.disabled = false; btn.innerHTML = '📤 Upload Report';
+  if (r.ok) {
+    _chosenFile = null;
+    document.getElementById('rFile').value = '';
+    document.getElementById('rLabel').value = '';
+    document.getElementById('rPreview').textContent = '';
+    if (_cgUserId) await API.pushNotification(_cgUserId, 'new_report', '📋 New report — ' + _user.name, '"' + label + '" added');
+    toast('📋 Report uploaded!');
+    await loadReports();
+  } else toast(r.data.error || 'Upload failed');
+}
+async function delReport(id) {
+  if (!confirm('Delete this report?')) return;
+  await API.deleteReport(_pid, id);
+  await loadReports();
+}
+// Drag-drop
+const dz = document.getElementById('dropZ');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) { _chosenFile = f; document.getElementById('rPreview').textContent = '📎 ' + f.name; if (!document.getElementById('rLabel').value) document.getElementById('rLabel').value = f.name.replace(/\.[^.]+$/, ''); }
+});
+
+// CHAT
+let _chatLoaded = false;
+async function loadChat() {
+  const r = await API.getNotifications();
+  if (!r.ok) return;
+  _chatMsgs = r.data.filter(n => n.type === 'cg_message' || n.type === 'pt_message').sort((a,b) => new Date(a.ts)-new Date(b.ts));
+  renderChat();
+}
+function renderChat() {
+  const el = document.getElementById('chatList');
+  if (!_chatMsgs.length) { el.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:.82rem;padding:30px 0">No messages yet. Say hello! 👋</div>'; return; }
+  let lastDay = '';
+  el.innerHTML = _chatMsgs.map(m => {
+    const fromMe = m.type === 'pt_message';
+    const day = new Date(m.ts).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    const dayDiv = day !== lastDay ? `<div class="chat-day">${lastDay = day}</div>` : '';
+    return `${dayDiv}<div style="display:flex;flex-direction:column;${fromMe?'align-items:flex-end':'align-items:flex-start'}">
+      <div class="chat-bubble ${fromMe?'chat-out':'chat-in'}">${esc(m.body)}<div class="chat-meta">${fmtTime(m.ts)}</div></div>
+    </div>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+async function sendChat() {
+  const inp = document.getElementById('chatInp');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  if (!_cgUserId) { toast('No caregiver linked'); return; }
+  inp.value = '';
+  // Optimistic
+  const fake = { id: 'tmp_' + Date.now(), type: 'pt_message', body: txt, ts: new Date().toISOString() };
+  _chatMsgs.push(fake);
+  renderChat();
+  await API.pushNotification(_cgUserId, 'pt_message', '💬 Message from ' + _user.name, txt);
+}
+
+// PAIRING CODE
+async function genCode() {
+  document.getElementById('pairCode').textContent = '⏳ Generating…';
+  const r = await API.genPairingCode();
+  if (r.ok && r.data.code) {
+    const c = r.data.code;
+    document.getElementById('pairCode').textContent = c.slice(0,3) + ' — ' + c.slice(3);
+    document.getElementById('pairCode').dataset.raw = c;
+  } else {
+    document.getElementById('pairCode').textContent = '⚠️ Failed — tap to retry';
+    document.getElementById('pairCode').onclick = genCode;
+    console.error('genCode failed:', r);
+  }
+}
+function copyCode() {
+  const raw = document.getElementById('pairCode').dataset.raw || '';
+  if (raw) navigator.clipboard.writeText(raw).catch(() => {});
+  toast('📋 Code copied!');
+}
+
+// HISTORY
+async function loadHistory() {
+  if (!_pid) return;
+  const r = await API.getHistory(_pid), el = document.getElementById('histList');
+  if (!r.ok) { el.textContent = 'Failed to load.'; return; }
+  if (!r.data.length) { el.innerHTML = '<p style="color:#94a3b8;font-size:.85rem">No activity yet.</p>'; return; }
+  const icons = { medicine:'💊', appointment:'📅', report:'📋', sos:'🆘', water:'💧', message:'💬' };
+  const bgs   = { medicine:'#fef9c3', appointment:'#ede9fe', report:'#f0fdf4', sos:'#fff1f2', water:'#e0f2fe', message:'#dcfce7' };
+  el.innerHTML = r.data.map(h => `
+    <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f8fafc">
+      <div style="width:10px;height:10px;border-radius:50%;background:${bgs[h.type]||'#f1f5f9'};flex-shrink:0;margin-top:5px;border:2px solid rgba(0,0,0,.1)"></div>
+      <div><p style="margin:0;font-size:.82rem;color:#1e293b">${esc(h.msg)}</p>
+      <p style="margin:0;font-size:.7rem;color:#94a3b8">${fmtDate(h.ts)}</p></div>
+    </div>`).join('');
+}
+async function clearHistory() {
+  if (!confirm('Clear all activity?')) return;
+  await API.clearHistory(_pid);
+  loadHistory();
+}
+
+// REALTIME
+function startRealtime() {
+  connectSSE();
+  // Poll every 2s — primary delivery when SSE drops on cloud
+  _pollTimer = setInterval(pollForNew, 2000);
+}
+function connectSSE() {
+  if (_sse) { try { _sse.close(); } catch(e) {} }
+  _sse = API.openEventStream(_user.id, data => {
+    if (!_seenIds.has(data.id)) {
+      _seenIds.add(data.id);
+      handleIncoming(data);
+      Notif.refreshPanel();
+    }
+  });
+  if (_sse) {
+    _sse.onopen = () => { document.getElementById('connStatus').textContent = '🟢'; };
+    _sse.onerror = () => {
+      document.getElementById('connStatus').textContent = '🔴';
+      setTimeout(connectSSE, 4000);
+    };
+  }
+}
+// Poll every 2s — shows popup+sound for every unread notification not yet shown
+async function pollForNew() {
+  const r = await API.getNotifications();
+  if (!r.ok) return;
+  r.data.filter(n => !n.read).forEach(n => {
+    if (!_seenIds.has(n.id)) {
+      _seenIds.add(n.id);
+      handleIncoming(n);
+    }
+  });
+  Notif.refreshPanel(r.data);
+}
+async function loadNotifs(showPopups) {
+  const r = await API.getNotifications();
+  if (!r.ok) return;
+  if (showPopups) {
+    r.data.filter(n => !n.read).forEach(n => {
+      if (!_seenIds.has(n.id)) { _seenIds.add(n.id); handleIncoming(n); }
+    });
+  }
+  Notif.refreshPanel(r.data);
+}
+function handleIncoming(n) {
+  Notif.showPopup(n.type, n.title, n.body, n.type === 'sos_alert' ? 0 : 7000);
+  Notif.playSound(n.type);
+  if (n.type === 'cg_message') {
+    if (!_chatMsgs.find(m => m.id === n.id)) { _chatMsgs.push(n); renderChat(); }
+  }
+  if (n.type === 'new_med_assigned') loadMeds();
+  if (n.type === 'new_appointment')  loadAppts();
+}
+
+// PERMISSION
+function enableNotifs() {
+  if (window.Notification && Notification.permission === 'granted') {
+    document.getElementById('permBanner').classList.add('gone'); return;
+  }
+  Notif.requestPermission(ok => { if (ok) document.getElementById('permBanner').classList.add('gone'); });
+}
+
+// NAV
+function nav(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  document.getElementById('sec-' + el.dataset.sec).classList.add('on');
+  closeDrawer();
+  const sec = el.dataset.sec;
+  if (sec === 'history') loadHistory();
+  if (sec === 'sos')     loadSosLast();
+  if (sec === 'reports') loadReports();
+  if (sec === 'chat')    { loadChat(); _chatLoaded = true; }
+  if (sec === 'overview') { renderOvAppts(); renderOvMeds(); }
+}
+function navTo(sec) { const el = document.querySelector('[data-sec=' + sec + ']'); if (el) nav(el); }
+function openDrawer()  { document.getElementById('drawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('on'); }
+function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('on'); }
+function doLogout() { Notif.stopWater(); API.logout(); window.location.href = 'index.html'; }
+
+// UTILS
+function toast(msg, dur = 2800) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), dur); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(ts) { try { return new Date(ts).toLocaleString([], { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); } catch(e) { return ts||''; } }
+function fmtDate2(d) { try { return new Date(d+'T12:00').toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' }); } catch(e) { return d; } }
+function fmtTime(ts) { try { return new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }); } catch(e) { return ''; } }
+
+// Start med check
+loadMeds().then(() => {
+  Notif.startMedCheck(() => _medicines, _pid, _user.id, _cgUserId || null, _user.name);
+});
+</script>
+</body>
+</html>
