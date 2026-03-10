@@ -1,0 +1,2 @@
+# HealthGuard uses Python stdlib only — no external packages needed
+# (sqlite3, http.server, json, hmac, hashlib are all built-in)
